@@ -6,7 +6,7 @@ pygame.init()
 
 WIDTH, HEIGHT =800, 600
 screen = pygame.display.set_mode((WIDTH,HEIGHT))
-pygame.display.set_caption('2d Drone Flight Simulator')
+pygame.display.set_caption('2D Drone Flight Simulator- Physics Engine')
 
 
 
@@ -18,6 +18,16 @@ BLUE=(50,50,255)
 #Clock to control frame rate (60 Fps)
 clock=pygame.time.Clock()
 
+# Physics constrains & variables
+GRAVITY= 0.15
+DRONE_MASS=1
+MOMENT_OF_INERTIA=0.5
+vx=0
+vy=0
+angular_velocity=0
+DRONE_WIDTH=60
+HALF_W= DRONE_WIDTH/2
+
 # Drone state variables (initial positions)
 
 drone_x = WIDTH //2
@@ -25,8 +35,10 @@ drone_y= HEIGHT // 2
 drone_angle= 0.0
 drone_width = 60
 
-def draw_drone(surface, x, y, angle, width):
+def draw_drone(surface,x,y, angle, width):
     half_w= width/2
+
+    
 
     x_left= x- half_w* math.cos(angle)
     y_left= y- half_w*math.sin(angle) 
@@ -49,19 +61,38 @@ while running:
         if event.type==pygame.QUIT:
             running=False
 
-    # Temporary manual controls to test visual rotation
+    left_thrust=0.075
+    right_thrust=0.075
 
     keys= pygame.key.get_pressed()
+    if keys[pygame.K_UP]:
+        left_thrust+=0.1
+        right_thrust+=0.1
     if keys[pygame.K_LEFT]:
-        drone_angle-= 0.05
+        right_thrust+=0.05
+        
+        
     if keys[pygame.K_RIGHT]:
-        drone_angle+=0.05
+        
+        left_thrust+=0.05
+        
+    total_thrust= right_thrust+left_thrust
 
-    if keys[pygame.K_w]:
-        drone_y-=3
+    thrust_x=total_thrust*math.sin(drone_angle)
+    thrust_y=-total_thrust*math.cos(drone_angle)
 
-    if keys[pygame.K_s]:
-        drone_y+=3
+    ax=thrust_x/DRONE_MASS
+    ay=(thrust_y+GRAVITY)/ DRONE_MASS
+    torque= (right_thrust-left_thrust)*HALF_W
+    angular_accleration= torque/MOMENT_OF_INERTIA
+
+
+    vx+=ax
+    vy+=ay
+    drone_x+=vx
+    drone_y+=vy
+    angular_velocity+= angular_accleration
+    drone_angle+=angular_velocity
 
     screen.fill(DARK_GREY)
     
