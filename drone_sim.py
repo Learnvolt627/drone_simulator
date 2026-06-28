@@ -27,6 +27,8 @@ vy=0
 angular_velocity=0
 DRONE_WIDTH=60
 HALF_W= DRONE_WIDTH/2
+linear_drag=0.01
+angular_drag=0.02
 
 # Drone state variables (initial positions)
 
@@ -102,6 +104,9 @@ while running:
     drone_y+=vy
     angular_velocity+= angular_accleration
     drone_angle+=angular_velocity
+    vx=vx*(1-linear_drag)
+    vy=vy*(1-linear_drag)
+    angular_velocity= angular_velocity*(1-angular_drag)
    
 
 
