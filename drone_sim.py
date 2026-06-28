@@ -53,6 +53,15 @@ def draw_drone(surface,x,y, angle, width):
     pygame.draw.circle(surface, RED, (int(x_left), int(y_left)), 8)
     pygame.draw. circle(surface, BLUE, (int(x_right), int(y_right)), 8)
 
+def reset_drone():
+    global drone_x, drone_y , drone_angle , vx, vy , angular_velocity
+    drone_x = WIDTH //2
+    drone_y = HEIGHT //3
+    drone_angle= 0.0
+    vx=0.0
+    vy=0.0
+    angular_velocity=0.0
+
 
 # simulation loop
 running = True
@@ -93,6 +102,20 @@ while running:
     drone_y+=vy
     angular_velocity+= angular_accleration
     drone_angle+=angular_velocity
+   
+
+
+    if drone_y>HEIGHT:
+        print("Drone hit the ground")
+        reset_drone()
+
+    elif drone_y<=0:
+        print("Drone hit the ceiling")
+        reset_drone()
+
+    elif drone_x< 0 or drone_x> WIDTH:
+        print("Drone flew of the sides")
+        reset_drone()    
 
     screen.fill(DARK_GREY)
     
