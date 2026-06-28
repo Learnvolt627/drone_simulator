@@ -29,6 +29,16 @@ DRONE_WIDTH=60
 HALF_W= DRONE_WIDTH/2
 linear_drag=0.01
 angular_drag=0.02
+kp=1.2 #proportional gain
+ki=0.0 #integral gain
+kd=1.0  #prevents overshoots
+
+error_integral=0.0
+previous_error=0.0
+target_angle=0.0
+
+
+
 
 # Drone state variables (initial positions)
 
@@ -56,13 +66,17 @@ def draw_drone(surface,x,y, angle, width):
     pygame.draw. circle(surface, BLUE, (int(x_right), int(y_right)), 8)
 
 def reset_drone():
-    global drone_x, drone_y , drone_angle , vx, vy , angular_velocity
+    global drone_x, drone_y , drone_angle , vx, vy , angular_velocity, error_integral,previous_error, target_angle
     drone_x = WIDTH //2
     drone_y = HEIGHT //3
     drone_angle= 0.0
     vx=0.0
     vy=0.0
     angular_velocity=0.0
+
+    error_integral=0.0
+    previous_error=0.0
+    target_angle=0.0
 
 
 # simulation loop
@@ -72,29 +86,46 @@ while running:
         if event.type==pygame.QUIT:
             running=False
 
-    left_thrust=0.075
-    right_thrust=0.075
+    base_thrust=0.075
 
     keys= pygame.key.get_pressed()
     if keys[pygame.K_UP]:
-        left_thrust+=0.1
-        right_thrust+=0.1
+       base_thrust+=0.1
+
+
     if keys[pygame.K_LEFT]:
-        right_thrust+=0.05
+       target_angle=-0.3
         
         
-    if keys[pygame.K_RIGHT]:
+    elif keys[pygame.K_RIGHT]:
         
-        left_thrust+=0.05
-        
+        target_angle=0.3
+
+    else:
+        target_angle=0.0
+
+
+    current_error= target_angle-drone_angle
+    error_integral+=current_error
+    error_derivative=current_error-previous_error
+    pid_output=(kp*current_error)+(ki*error_integral)+(kd*error_derivative)
+    previous_error= current_error
+
+    left_thrust=base_thrust + pid_output
+    right_thrust= base_thrust - pid_output
+
+
     total_thrust= right_thrust+left_thrust
+   
 
     thrust_x=total_thrust*math.sin(drone_angle)
     thrust_y=-total_thrust*math.cos(drone_angle)
 
     ax=thrust_x/DRONE_MASS
     ay=(thrust_y+GRAVITY)/ DRONE_MASS
-    torque= (right_thrust-left_thrust)*HALF_W
+
+    arm_lenght=HALF_W*0.01
+    torque= (left_thrust-right_thrust)*arm_lenght
     angular_accleration= torque/MOMENT_OF_INERTIA
 
 
