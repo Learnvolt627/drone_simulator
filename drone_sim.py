@@ -34,7 +34,7 @@ ki=0.0 #integral gain
 kd=1.0  #prevents overshoots
 
 error_integral=0.0
-previous_error=0.0
+previous_angle=0.0
 target_angle=0.0
 
 
@@ -46,6 +46,9 @@ drone_x = WIDTH //2
 drone_y= HEIGHT // 2
 drone_angle= 0.0
 drone_width = 60
+
+ground_y= HEIGHT-40
+hover_thrust=GRAVITY
 
 def draw_drone(surface,x,y, angle, width):
     half_w= width/2
@@ -66,17 +69,39 @@ def draw_drone(surface,x,y, angle, width):
     pygame.draw. circle(surface, BLUE, (int(x_right), int(y_right)), 8)
 
 def reset_drone():
-    global drone_x, drone_y , drone_angle , vx, vy , angular_velocity, error_integral,previous_error, target_angle
+    global drone_x, drone_y , drone_angle , vx, vy , angular_velocity
+    global error_integral,previous_angle, target_angle
     drone_x = WIDTH //2
-    drone_y = HEIGHT //3
+    drone_y =ground_y
     drone_angle= 0.0
     vx=0.0
     vy=0.0
     angular_velocity=0.0
 
     error_integral=0.0
-    previous_error=0.0
+    previous_angle=0.0
     target_angle=0.0
+
+grid_spacing=80
+def scrolling_background(surface, cam_x, cam_y):
+    surface.fill(DARK_GREY)
+    #vertical grid lines
+    start_x= -(cam_x % grid_spacing)
+    x=start_x
+    while x< WIDTH:
+        pygame.draw.line(surface, (50,50,50), (x,0),(x,HEIGHT),1)
+        x += grid_spacing
+
+    #horizontal grid lines
+    start_y=-(cam_y % grid_spacing)
+    y= start_y
+    while y< HEIGHT:
+        pygame.draw.line(surface, (50,50,50), (0,y),(WIDTH,y),1)
+        y += grid_spacing
+
+    #Ground line
+    ground_screen= ground_y- cam_y
+    pygame.draw.line(surface, (100,70,40),(0,ground_screen), (WIDTH,ground_screen),3)
 
 
 # simulation loop
@@ -86,11 +111,14 @@ while running:
         if event.type==pygame.QUIT:
             running=False
 
-    base_thrust=0.075
+    base_thrust=0.0
 
     keys= pygame.key.get_pressed()
     if keys[pygame.K_UP]:
-       base_thrust+=0.1
+       base_thrust+=0.25
+
+    if keys[pygame.K_DOWN]:
+        base_thrust-=0.1
 
 
     if keys[pygame.K_LEFT]:
@@ -105,11 +133,13 @@ while running:
         target_angle=0.0
 
 
+ 
+
     current_error= target_angle-drone_angle
     error_integral+=current_error
-    error_derivative=current_error-previous_error
+    error_derivative=-(drone_angle-previous_angle)
     pid_output=(kp*current_error)+(ki*error_integral)+(kd*error_derivative)
-    previous_error= current_error
+    previous_angle= drone_angle
 
     left_thrust=base_thrust + pid_output
     right_thrust= base_thrust - pid_output
@@ -138,24 +168,25 @@ while running:
     vx=vx*(1-linear_drag)
     vy=vy*(1-linear_drag)
     angular_velocity= angular_velocity*(1-angular_drag)
-   
 
+    #clamping of output for safety
+    pid_output=max(-0.5, min(0.5, pid_output))
+    angular_velocity=max(-2.0, min(2.0,angular_velocity))
 
-    if drone_y>HEIGHT:
-        print("Drone hit the ground")
+    if drone_y>=ground_y:
+        drone_y=ground_y
+        if vy>0:
+            vy=0
+
+    elif drone_y<=-2000:
+        print("Drone hit max altitude")
         reset_drone()
 
-    elif drone_y<=0:
-        print("Drone hit the ceiling")
-        reset_drone()
+    camera_x = drone_x - WIDTH /2
+    camera_y = drone_y - HEIGHT /2
 
-    elif drone_x< 0 or drone_x> WIDTH:
-        print("Drone flew of the sides")
-        reset_drone()    
-
-    screen.fill(DARK_GREY)
-    
-    draw_drone(screen, drone_x, drone_y, drone_angle, drone_width)
+    scrolling_background(screen, camera_x, camera_y)
+    draw_drone(screen, drone_x-camera_x, drone_y-camera_y,drone_angle, drone_width )
 
     pygame.display.flip()
     clock.tick(60)
