@@ -115,23 +115,13 @@ while running:
 
     keys= pygame.key.get_pressed()
     if keys[pygame.K_UP]:
-       base_thrust+=0.25
+       base_thrust+=0.15
 
     if keys[pygame.K_DOWN]:
-        base_thrust-=0.1
+        base_thrust-=0.15
 
-
-    if keys[pygame.K_LEFT]:
-       target_angle=-0.3
-        
-        
-    elif keys[pygame.K_RIGHT]:
-        
-        target_angle=0.3
-
-    else:
-        target_angle=0.0
-
+    desired_angle=-0.3 if keys[pygame.K_LEFT] else (0.3 if keys[pygame.K_RIGHT] else 0.0)
+    target_angle+= (desired_angle-target_angle)*0.1
 
  
 
